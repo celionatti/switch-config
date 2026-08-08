@@ -1,0 +1,19 @@
+{
+    "name": "switch/config",
+    "description": "Switch Framework Configuration Package",
+    "type": "library",
+    "license": "MIT",
+    "require": {
+        "php": ">=8.2"
+    },
+    "autoload": {
+        "psr-4": {
+            "Switch\\Config\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Switch\\Config\\Tests\\": "tests/"
+        }
+    }
+}
