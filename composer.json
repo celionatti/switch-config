@@ -7,6 +7,9 @@
         "php": ">=8.2"
     },
     "autoload": {
+        "files": [
+            "src/helpers.php"
+        ],
         "psr-4": {
             "Switch\\Config\\": "src/"
         }
