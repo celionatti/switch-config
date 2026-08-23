@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Switch\Config;
 
+use Dotenv\Dotenv;
+
 class Env
 {
     /**
@@ -12,7 +14,7 @@ class Env
     private static array $variables = [];
 
     /**
-     * Load environment variables from a .env file.
+     * Load environment variables from a .env file or directory.
      */
     public static function load(string $filePath): void
     {
@@ -20,6 +22,29 @@ class Env
             return;
         }
 
+        // 1. Use vlucas/phpdotenv if available (Standard Framework Env Loader)
+        if (class_exists(Dotenv::class)) {
+            try {
+                $dir = dirname($filePath);
+                $file = basename($filePath);
+                $dotenv = Dotenv::createMutable($dir, $file);
+                $loaded = $dotenv->safeLoad();
+
+                foreach ($loaded as $key => $val) {
+                    $parsed = self::parseValue($val);
+                    self::$variables[$key] = $parsed;
+                    $_ENV[$key] = $parsed;
+                    $_SERVER[$key] = $parsed;
+                    putenv("{$key}={$val}");
+                }
+
+                return;
+            } catch (\Throwable) {
+                // Fallback to native parser
+            }
+        }
+
+        // 2. High-performance native fallback parser
         $lines = file($filePath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
         if ($lines === false) {
             return;
@@ -63,6 +88,14 @@ class Env
     }
 
     /**
+     * Load environment variables from a base directory.
+     */
+    public static function loadFromDirectory(string $directory, string $file = '.env'): void
+    {
+        self::load(rtrim($directory, '/\\') . DIRECTORY_SEPARATOR . $file);
+    }
+
+    /**
      * Get an environment variable value.
      */
     public static function get(string $key, mixed $default = null): mixed
@@ -88,9 +121,30 @@ class Env
     }
 
     /**
+     * Set an environment variable in runtime memory.
+     */
+    public static function set(string $key, mixed $value): void
+    {
+        self::$variables[$key] = $value;
+        $_ENV[$key] = $value;
+        $_SERVER[$key] = $value;
+        if (is_scalar($value)) {
+            putenv("{$key}={$value}");
+        }
+    }
+
+    /**
+     * Clear loaded environment variables (for testing isolation).
+     */
+    public static function clear(): void
+    {
+        self::$variables = [];
+    }
+
+    /**
      * Parse raw string value into appropriate PHP data type.
      */
-    private static function parseValue(mixed $value): mixed
+    public static function parseValue(mixed $value): mixed
     {
         if (!is_string($value)) {
             return $value;
